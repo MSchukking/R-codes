@@ -1,0 +1,211 @@
+# GSE16476              Mo July 22, 2019 
+# N = 88 NB samples
+# Platform: GPL570 Affymetrix 
+
+# Probes of interest:
+# miR675  224646_x_at ...
+# BLIMP1  228964_at   NM_001198, NM_182907
+# STAT5A  203010_at   NM_003152
+# PDL1    223834_at   NM_001267706, NM_014143
+# PD1     207634_at   NM_005018
+
+#1. INSTALL PACKAGES
+
+# Reinstall bioconductor if not done before
+source("http://bioconductor.org/biocLite.R")     
+biocLite("GEOquery")       
+## Required for windows:  
+# install.packages("stringi")
+# Load the GEOquery R/Bioconductor package:
+library("GEOquery")                               #This one includes getGEO()
+
+#2. OPEN AFFYMETRIX DATASET & EXTRACT THE PROBE NAMES
+
+# From: https://www.biostars.org/p/210101/
+GSE16476 <- getGEO("GSE16476", GSEMatrix = TRUE)    
+GSE16476 <- GSE16476[[1]]      #get just the first element (GPL570) in the list
+head(fData(GSE16476))
+# Select probes names as a variable
+probes = fData(GSE16476)[,'ID'] 
+head(probes)
+str(probes)   # Character
+#Now, you have the probe ID of this Affymetrix dataset. 
+#The gse object (after choosing the first 
+#element in the list using gse[[1]]) contains the information from the Series 
+#Matrix file AND the GPL file.
+
+#3. MAKE LIST WITH PROBESET INFORMATION 
+## Already had this for this dataset... 
+#  fData(GSE...)[1:5, ]
+# probe_information = fData(GSE27608)
+#SAVE AS CSV 
+# write.csv(x = probe_information, file = "1.GSE27608.probe_information.csv")
+
+#4. GET THE EXPRESSION MATRIX wITH PROBES OF INTEREST 
+
+expr_matrix <- exprs(GSE16476)        # get the expression matrix
+rownames(expr_matrix) <- probes      # Annotate the row names 
+# with gene symbols
+# Make the expression matrix as data.frame if it is not a dataframe already: 
+str(expr_matrix)
+expr_matrix  <- as.data.frame(expr_matrix)
+str(expr_matrix)
+# Looking at the dataset I see that Patient ID's are column names and
+# ProbeIDs are in row names. 
+#Clean up global environment
+rm(list = c("GSE16476", "probes"))
+# Extract probes of interest:
+
+# Probes of interest:
+# miR675  224646_x_at ...
+# BLIMP1  228964_at   NM_001198, NM_182907
+# STAT5A  203010_at   NM_003152
+# PDL1    223834_at   NM_001267706, NM_014143
+# PD1     207634_at   NM_005018
+# B7H3    224859_at 
+matrix <- expr_matrix[c("224646_x_at", "228964_at", "203010_at", "223834_at", 
+                        "207634_at", "224859_at"), ] 
+# Gives a df with 5 obs. and 88 variables
+#SAVE AS CSV 
+write.csv(x = matrix, file = "1.GSE16476.expr_matrix.v2.csv")
+
+################################################################################
+
+# PEARSONS CORRELATION GRAPH 
+
+################################################################################
+
+# PEARSONS CORRELATION MIR675 vs STAT5A (N = 88)          
+# 1. Extract probes as numeric vector
+stat5a <- as.numeric(matrix["203010_at",])
+mir675 <- as.numeric(matrix["224646_x_at",])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(mir675, stat5a, col='red', pch=16, xlab='MIR675', 
+     ylab='STAT5A', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+mir675_stat5a <- data.frame(mir675, stat5a)   #88 obs.of 2 variables
+cor.test(mir675_stat5a$mir675, mir675_stat5a$stat5a, method = "pearson")
+
+#MIR675 vs BLIMP1 (N = 88)  
+# * BLIMP1 had a big outlier so leave that one out GSM414014, col15
+# 1. Extract probes as numeric vector
+blimp1 <- as.numeric(matrix["228964_at", c(1:14, 16:88)])
+mir675_blimp <- as.numeric(matrix["224646_x_at", c(1:14, 16:88)])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(mir675_blimp, blimp1, col='red', pch=16, xlab='MIR675', 
+     ylab='BLIMP1', main = "GSE16476 (n = 87)")
+# CORRELATIE COEFFICIENT TESTEN
+mir_blimp1 <- data.frame(mir675_blimp, blimp1)   #88 obs.of 2 variables
+cor.test(mir_blimp1$mir675_blimp, mir_blimp1$blimp1, method = "pearson")
+
+# MIR675 vs PDL1 (N = 88)          
+# 1. Extract probes as numeric vector
+pdl1 <- as.numeric(matrix["223834_at",])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(mir675, pdl1, col='red', pch=16, xlab='MIR675', 
+     ylab='PDL1', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(mir675, pdl1)   #88 obs.of 2 variables
+cor.test(together$mir675, together$pdl1, method = "pearson")
+
+# MIR675 vs PD1 (N = 88)          
+# 1. Extract probes as numeric vector
+pd1 <- as.numeric(matrix["207634_at",])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(mir675, pd1, col='red', pch=16, xlab='MIR675', 
+     ylab='PD1', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(mir675, pd1)   #88 obs.of 2 variables
+cor.test(together$mir675, together$pd1, method = "pearson") 
+
+# STAT5A vs PDL1 (N = 88)          
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(stat5a, pdl1, col='red', pch=16, xlab='STAT5A', 
+     ylab='PDL1', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(stat5a, pdl1)   #88 obs.of 2 variables
+cor.test(together$stat5a, together$pdl1, method = "pearson") 
+
+# STAT5A vs PD1 (N = 88)          
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(stat5a, pd1, col='red', pch=16, xlab='STAT5A', 
+     ylab='PD1', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(stat5a, pd1)   #88 obs.of 2 variables
+cor.test(together$stat5a, together$pd1, method = "pearson") 
+
+# BLIMP1 vs PDL1 (N = 87)  
+# * BLIMP1 had a big outlier so leave that one out GSM414014, col15
+# 1. Extract probes as numeric vector
+blimp1 <- as.numeric(matrix["228964_at", c(1:14, 16:88)])
+pdl1_bl <- as.numeric(matrix["223834_at",c(1:14, 16:88)])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(blimp1, pdl1_bl, col='red', pch=16, xlab='BLIMP1', 
+     ylab='PDL1', main = "GSE16476 (n = 87)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(blimp1, pdl1_bl)   #88 obs.of 2 variables
+cor.test(together$blimp1, together$pdl1_bl, method = "pearson") 
+
+# BLIMP1 vs PD1 (N = 87)  
+# * BLIMP1 had a big outlier so leave that one out GSM414014, col15
+# 1. Extract probes as numeric vector
+blimp1 <- as.numeric(matrix["228964_at", c(1:14, 16:88)])
+pd1_bl <- as.numeric(matrix["207634_at",c(1:14, 16:88)])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(blimp1, pd1_bl, col='red', pch=16, xlab='BLIMP1', 
+     ylab='PD1', main = "GSE16476 (n = 87)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(blimp1, pd1_bl)   #88 obs.of 2 variables
+cor.test(together$blimp1, together$pd1_bl, method = "pearson") 
+
+# BLIMP1 vs STAT5 (N = 87)  
+# * BLIMP1 had a big outlier so leave that one out GSM414014, col15
+# 1. Extract probes as numeric vector
+blimp1 <- as.numeric(matrix["228964_at", c(1:14, 16:88)])
+stat5a_bl <- as.numeric(matrix["203010_at",c(1:14, 16:88)])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(blimp1, stat5a_bl, col='red', pch=16, xlab='BLIMP1', 
+     ylab='STAT5A', main = "GSE16476 (n = 87)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(blimp1, stat5a_bl)   #88 obs.of 2 variables
+cor.test(together$blimp1, together$stat5a_bl, method = "pearson") 
+
+# PD1 vs PDL1 (N = 88)          
+# 1. Extract probes as numeric vector
+pdl1 <- as.numeric(matrix["223834_at",])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(pd1, pdl1, col='red', pch=16, xlab='PD1', 
+     ylab='PDL1', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(pd1, pdl1)   #88 obs.of 2 variables
+cor.test(together$pd1, together$pdl1, method = "pearson")
+
+#### 
+
+# July 24, 2019
+
+#####
+
+# PEARSONS CORRELATION MIR675 vs B7H3 (N = 88)          
+# 1. Extract probes as numeric vector
+b7h3 <- as.numeric(matrix["224859_at",])
+mir675 <- as.numeric(matrix["224646_x_at",])
+#2. Grafische weergave - Scatterplot 
+par(mfrow=c(1,1)) 
+plot(mir675, b7h3, col='red', pch=16, xlab='MIR675', 
+     ylab='B7H3', main = "GSE16476 (n = 88)")
+# CORRELATIE COEFFICIENT TESTEN
+together <- data.frame(mir675, b7h3)   #88 obs.of 2 variables
+cor.test(together$mir675, together$b7h3, method = "pearson")
+
+####################################################################################################
